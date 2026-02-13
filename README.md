@@ -1,4 +1,4 @@
-# SIGIR2026 Submitted
+# SIGIR2026 shor Submitted
 
 This repository contains the code for:
 Residual Dominance Drives Last-Item Reliance in Causal Self-Attention for Sequential Recommendation.
