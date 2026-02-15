@@ -1,68 +1,77 @@
-# SIGIR2026 shor Submitted
+# Revisiting the Role of Learned Attention Weighting in SASRec
 
-This repository contains the code for:
-Residual Dominance Drives Last-Item Reliance in Causal Self-Attention for Sequential Recommendation.
+This repository contains the code for our SIGIR 2026 Short Track submission:
+**"Revisiting the Role of Learned Attention Weighting in SASRec."**
 
-This repository runs norm-based analysis of SASRec on top of the `time-to-split` codebase.
-For full experimental pipelines and reproducibility details, see `time-to-split/README.md`.
-
-
-## Section 3.1 Results (all datasets)
-
-The figure below shows results on nine datasets when inputs are shuffled at inference time.
-
-![Shuffle histogram](time-to-split/images/shuffle_histogram.png)
-
-## Section 3.2 Results (K=10)
-
-The image below shows HRLI and HRL2I computed at K=10.
-
-![HRLI vs HRL2I at K=10](time-to-split/images/hist_comparison_10.png)
+The project studies when non-uniform attention weighting is functionally necessary in sequential recommendation.
+In particular, it compares standard SASRec with a uniform-attention variant implemented via `SFSRec` under matched training settings, and analyzes representation-level positional mixing.
 
 
+## Repository Layout
 
-## Structure
-- `time-to-split/`: Research codebase (vendored from the original repository)
+- `revisiting_sasrec/`: Main codebase (training, evaluation, analysis scripts, and configs)
+- `revisiting_sasrec/runs/`: Hydra entrypoints and experiment configs
+- `revisiting_sasrec/src/`: Model and analysis implementation
+- `revisiting_sasrec/scripts/`: Utility scripts for plotting and scaling analyses
 
-## SASRecAnalyze: How to Run the Analysis
+## Environment Setup
 
-SASRecAnalyze saves per-batch analysis `.npz` during prediction. The default config already enables
-`seqrec_module.save_analysis_npz: true`.
-
-### 1) Train/evaluate with SASRecAnalyze
-
-Run training with the analysis model. Use any dataset/split supported by `time-to-split`:
+Tested with `python==3.10.16`.
 
 ```bash
-cd time-to-split
-python runs/train.py model=SASRecAnalyze split_type=leave-one-out dataset=Beauty
+cd revisiting_sasrec
+pip install -r requirements.txt
+export SEQ_SPLITS_DATA_PATH=$(pwd)/data
+export PYTHONPATH="./"
 ```
 
-### 2) Locate analysis outputs
+## Data Preparation
 
-Analysis files are saved under:
-
-```
-$SEQ_SPLITS_DATA_PATH/results/analysis/SASRecAnalyze/<dataset>/<split_type>/seed_<seed>/
-```
-
-### 3) Generate analysis plots/statistics
-
-Edit `time-to-split/src/analyze.py` and set:
-
-```python
-analysis_dir = "./data/results/analysis/SASRecAnalyze/Movielens-1m/global_timesplit/seed_17"
-```
-
-Then run:
+Create data directories:
 
 ```bash
-python src/analyze.py
+mkdir -p $SEQ_SPLITS_DATA_PATH/{raw,preprocessed,splitted}
 ```
 
-Outputs include mixing-ratio statistics and average heatmaps, saved under:
-`figures_avg_recent15_sourceDown/` inside the analysis directory.
+Put raw dataset CSV files in:
 
-## Notes
+```bash
+$SEQ_SPLITS_DATA_PATH/raw
+```
 
-- Detailed data prep, split strategies, and training options live in `time-to-split/README.md`.
+Run preprocessing and splitting (example with Beauty):
+
+```bash
+python runs/preprocess.py +dataset=Beauty
+python runs/split.py split_type=leave-one-out dataset=Beauty
+```
+
+## Training
+
+Run baseline SASRec:
+
+```bash
+python runs/train.py model=SASRec dataset=Beauty split_type=leave-one-out
+```
+
+Run the uniform-attention variant (implemented as `SFSRec`):
+
+```bash
+python runs/train.py model=SFSRec dataset=Beauty split_type=leave-one-out
+```
+
+You can switch datasets/split settings using Hydra arguments in `revisiting_sasrec/runs/configs/`.
+
+## Analysis
+
+Representation-level analysis outputs are saved under:
+
+```bash
+$SEQ_SPLITS_DATA_PATH/results/analysis/<model>/<dataset>/<split_type>/seed_<seed>/
+```
+
+Main analysis/plotting entrypoints:
+
+- `revisiting_sasrec/src/analyze.py`
+- `revisiting_sasrec/scripts/compute_best_dropout.py`
+
